@@ -1,4 +1,3 @@
-import os
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -6,13 +5,12 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from agents import evaluate_artifact
+from pipeline import evaluate_artifact
 
 app = FastAPI(title="Critic Agent")
 
 FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
 
-# Serve frontend static files
 app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
 
 MIN_WORDS = 30
@@ -29,7 +27,7 @@ def index():
 
 
 @app.post("/evaluate")
-def evaluate(req: EvaluateRequest):
+async def evaluate(req: EvaluateRequest):
     text = req.artifact.strip()
 
     # Failure Case 3: input validation
@@ -52,23 +50,24 @@ def evaluate(req: EvaluateRequest):
         })
 
     try:
-        result = evaluate_artifact(text)
-        return result
+        result = await evaluate_artifact(text)
+        return result.model_dump()
     except ValueError as e:
-        # Rubric selection failed even after Gemini fallback
+        # Stage 1 failed even after fallback to Gemini
         raise HTTPException(status_code=422, detail={
             "error": "rubric_selection_failed",
             "message": str(e),
         })
     except RuntimeError as e:
-        # Missing API keys
+        # Missing API keys / config errors
         raise HTTPException(status_code=500, detail={
             "error": "configuration_error",
             "message": str(e),
         })
     except Exception as e:
-        # Failure Case 2: both providers unavailable
-        if "rate" in str(e).lower() or "quota" in str(e).lower() or "unavailable" in str(e).lower():
+        # Failure Case 2: both providers down (rate limit / quota)
+        msg = str(e).lower()
+        if "rate" in msg or "quota" in msg or "unavailable" in msg:
             raise HTTPException(status_code=503, detail={
                 "error": "all_providers_unavailable",
                 "message": "Both Groq and Gemini are currently unavailable. Try again in a minute.",

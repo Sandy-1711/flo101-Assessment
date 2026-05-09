@@ -1,6 +1,6 @@
 fastapi
 uvicorn[standard]
 groq
-google-generativeai
+google-genai
 python-dotenv
 httpx
