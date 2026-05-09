@@ -5,6 +5,8 @@ Each function takes an `LLMRouter` and is independently usable. The pipeline
 orchestrator (pipeline.py) decides how they compose.
 """
 
+import os
+
 from schemas import (
     Rubric,
     RubricScoreResponse,
@@ -19,12 +21,12 @@ from prompts import (
     SCORING_USER,
 )
 
-# --- Config ---
-N_SCORING_RUNS = 1            # set to 1 for faster demos
-MIN_RUBRICS = 3
-MAX_RUBRICS = 6
-SELECTION_TEMPERATURE = 0.4
-SCORING_TEMPERATURE = 0
+# --- Config (override via .env) ---
+N_SCORING_RUNS = int(os.getenv("N_SCORING_RUNS", "1"))
+MIN_RUBRICS = int(os.getenv("MIN_RUBRICS", "3"))
+MAX_RUBRICS = int(os.getenv("MAX_RUBRICS", "6"))
+SELECTION_TEMPERATURE = float(os.getenv("SELECTION_TEMPERATURE", "0.4"))
+SCORING_TEMPERATURE = float(os.getenv("SCORING_TEMPERATURE", "0"))
 
 # Used to pad selection up to MIN_RUBRICS if model returns too few
 _FALLBACK_RUBRIC_IDS = ("clarity", "structure", "relevance", "depth", "completeness")

@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -16,8 +17,8 @@ FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
 
 app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
 
-MIN_WORDS = 10
-MAX_CHARS = 15000
+MIN_WORDS = int(os.getenv("MIN_WORDS", "10"))
+MAX_CHARS = int(os.getenv("MAX_CHARS", "15000"))
 
 
 class EvaluateRequest(BaseModel):
