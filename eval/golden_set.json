@@ -1,0 +1,92 @@
+{
+  "version": "1.0",
+  "description": "Golden evaluation set for Critic Agent. Expected rubric selections and score ranges were defined before running evaluations and serve as sanity checks, not ground truth.",
+  "entries": [
+    {
+      "id": "gs_001",
+      "label": "Strong analytical essay",
+      "artifact": "The collapse of Silicon Valley Bank in March 2023 exposed a fundamental tension in modern banking: the assumption that interest rate risk is manageable through diversification breaks down when an institution's depositor base is unusually concentrated and unusually correlated. SVB did not fail because of bad loans. It failed because it held long-duration Treasury bonds that declined in value as the Fed raised rates, and when a small number of well-networked venture capitalists publicly signaled concern about its solvency, the resulting bank run was faster and larger than any traditional model had predicted. The deeper issue is that deposit insurance thresholds designed in 1980 were never updated for an era in which a single startup might park $50 million in a single account. FDIC insurance capped at $250,000 means nothing to a payroll account. The regulatory framework assumed retail depositors who move slowly; SVB's depositors were institutional actors who move at the speed of Twitter. What the episode reveals is not that banks are reckless but that the feedback loops between social media, network-dense depositor communities, and real-time bank transfer capabilities have created a new class of systemic risk that existing macroprudential tools were not designed to handle. The solution probably involves some combination of higher insurance thresholds for operating accounts, faster supervisory intervention triggers, and better liquidity stress tests for concentrated deposit bases. None of these are politically easy, but all are more tractable than trying to slow down information.",
+      "expected_rubrics": {
+        "must_include": ["depth", "logical_coherence"],
+        "should_include": ["clarity", "evidence", "structure"],
+        "must_exclude": ["actionability", "professional_tone", "originality"]
+      },
+      "expected_scores": {
+        "depth": {"min": 6.5, "max": 10.0},
+        "logical_coherence": {"min": 6.0, "max": 9.5},
+        "clarity": {"min": 6.0, "max": 9.5},
+        "evidence": {"min": 5.0, "max": 8.5},
+        "structure": {"min": 5.5, "max": 9.0}
+      },
+      "notes": "Well-argued essay, strong logical flow, light on citations but uses a concrete case study"
+    },
+    {
+      "id": "gs_002",
+      "label": "Vague corporate email",
+      "artifact": "Hi team, I wanted to circle back and touch base regarding the upcoming synergy initiative that we discussed in our last alignment session. As we move forward into the next phase of our transformation journey, it will be critical that all stakeholders are rowing in the same direction and that we leverage our collective bandwidth to drive impactful outcomes. I am confident that by leaning into our core competencies and maintaining laser focus on our north star, we can unlock significant value for the organization. Please do not hesitate to reach out if you have any questions or concerns. I look forward to collaborating with each and every one of you as we navigate this exciting chapter together. Best, Marcus",
+      "expected_rubrics": {
+        "must_include": ["actionability", "conciseness"],
+        "should_include": ["clarity", "relevance"],
+        "must_exclude": ["technical_accuracy", "depth", "evidence"]
+      },
+      "expected_scores": {
+        "actionability": {"min": 0.0, "max": 3.5},
+        "conciseness": {"min": 1.5, "max": 5.0},
+        "clarity": {"min": 2.0, "max": 5.5},
+        "relevance": {"min": 2.0, "max": 5.5}
+      },
+      "notes": "Classic corporate speak — lots of buzzwords, zero specific action items or context"
+    },
+    {
+      "id": "gs_003",
+      "label": "Technical report with errors",
+      "artifact": "Executive Summary\n\nThis report examines the performance characteristics of large language models (LLMs) deployed in production environments. Our analysis covers three primary dimensions: inference latency, memory footprint, and throughput under concurrent load.\n\nKey Findings\n\nFirst, we observed that GPT-4 has a context window of 4,096 tokens, making it unsuitable for long-document processing. Second, quantization to INT4 precision consistently reduces model size by approximately 75% with no measurable accuracy degradation across all benchmarks. Third, batch sizes above 64 showed linear throughput scaling on all tested hardware configurations.\n\nRecommendations\n\n1. Deploy quantized models for all production workloads where accuracy requirements are moderate.\n2. Use a batch size of 64 as the universal default across all model sizes and hardware types.\n3. Avoid GPT-4 for any task requiring more than 4,096 tokens of context.\n\nConclusion\n\nLLM deployment optimization is primarily a hardware problem, not a software one. Organizations that invest in newer GPU generations will see automatic performance improvements regardless of software-level optimizations.",
+      "expected_rubrics": {
+        "must_include": ["technical_accuracy", "structure"],
+        "should_include": ["completeness", "evidence"],
+        "must_exclude": ["originality", "professional_tone", "conciseness"]
+      },
+      "expected_scores": {
+        "technical_accuracy": {"min": 1.0, "max": 5.0},
+        "structure": {"min": 6.0, "max": 9.5},
+        "completeness": {"min": 3.5, "max": 7.0},
+        "evidence": {"min": 2.0, "max": 5.5}
+      },
+      "notes": "GPT-4 has a 128k context window (not 4096), INT4 quantization does have accuracy degradation on many benchmarks, and the batch size claim is hardware-dependent. Structure is good but content is unreliable."
+    },
+    {
+      "id": "gs_004",
+      "label": "Creative product pitch",
+      "artifact": "What if your morning commute taught you something?\n\nCommute Coach turns dead time into learning time. Instead of doomscrolling or staring at ads, commuters get 8-minute audio lessons — each one built around a single, specific skill. Not 'improve your communication' but 'here is how to end a meeting that is running over time without offending anyone.' Not 'learn to code' but 'here is how to write a for-loop that processes a CSV file.'\n\nThe insight: micro-specificity is what makes knowledge stick. Everyone has taken a productivity course and remembered nothing. The reason is that abstract advice requires too much mental translation before it becomes useful. Commute Coach skips the abstraction and delivers the translation.\n\nThe business model is simple: $8/month, no free tier, no upselling. We believe a paid product with high quality is better than a free product propped up by engagement metrics. Our target customer is a working adult with 30–60 minutes of commute time per day and a sense that they are falling behind professionally.\n\nWe are three months from launch. We have 200 lessons recorded. We have 140 waitlist signups from a single tweet. We need $150,000 to reach launch.\n\nThis is not a content company. This is a skills company. The difference matters.",
+      "expected_rubrics": {
+        "must_include": ["originality", "actionability"],
+        "should_include": ["clarity", "relevance"],
+        "must_exclude": ["technical_accuracy", "logical_coherence"]
+      },
+      "expected_scores": {
+        "originality": {"min": 6.0, "max": 10.0},
+        "actionability": {"min": 6.0, "max": 9.5},
+        "clarity": {"min": 7.0, "max": 10.0},
+        "relevance": {"min": 7.0, "max": 10.0}
+      },
+      "notes": "Novel framing, clear ask, specific numbers — strong pitch document"
+    },
+    {
+      "id": "gs_005",
+      "label": "Shallow listicle",
+      "artifact": "10 Productivity Hacks That Will Change Your Life\n\n1. Wake up early. Successful people like Tim Cook and Elon Musk wake up before 5am. Try setting your alarm 30 minutes earlier each week.\n\n2. Make a to-do list. Writing down your tasks helps you remember what to do. Use a notebook or an app.\n\n3. Take breaks. Studies show that taking breaks makes you more productive. Try the Pomodoro technique.\n\n4. Eliminate distractions. Turn off your phone notifications. Close unnecessary tabs.\n\n5. Exercise. Exercise gives you energy and improves focus. Try to exercise at least three times per week.\n\n6. Sleep enough. Sleep is important for productivity. Most experts recommend 7-9 hours.\n\n7. Eat healthy. What you eat affects how you feel and how productive you are.\n\n8. Meditate. Many successful people meditate. Even five minutes per day can make a difference.\n\n9. Read every day. Reading expands your mind and gives you new ideas. Try to read for 20 minutes per day.\n\n10. Set goals. Having clear goals helps you stay focused and motivated. Write down your goals and review them regularly.",
+      "expected_rubrics": {
+        "must_include": ["depth", "evidence"],
+        "should_include": ["originality", "completeness"],
+        "must_exclude": ["technical_accuracy", "professional_tone"]
+      },
+      "expected_scores": {
+        "depth": {"min": 0.0, "max": 3.5},
+        "evidence": {"min": 0.0, "max": 3.5},
+        "originality": {"min": 0.0, "max": 3.5},
+        "completeness": {"min": 3.0, "max": 7.0}
+      },
+      "notes": "Generic advice, no evidence, no original thought, pure content-farm material"
+    }
+  ]
+}

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Critic Agent</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Critic Agent</h1>
+      <p class="tagline">paste something you wrote. get an honest evaluation.</p>
+    </header>
+
+    <main>
+      <div class="input-section">
+        <textarea
+          id="artifact"
+          placeholder="Paste your text here — an essay, email, proposal, report, anything. Min 30 words."
+          rows="12"
+        ></textarea>
+        <div class="input-meta">
+          <span id="word-count" class="word-count">0 words</span>
+          <button id="submit-btn" onclick="runEvaluation()">Evaluate</button>
+        </div>
+      </div>
+
+      <div id="error-box" class="error-box hidden">
+        <span id="error-msg"></span>
+      </div>
+
+      <div id="loading" class="loading hidden">
+        <div class="spinner"></div>
+        <p id="loading-msg">Selecting rubrics...</p>
+      </div>
+
+      <div id="results" class="results hidden">
+        <div class="results-header">
+          <h2>Evaluation</h2>
+          <div id="rubric-reasoning" class="rubric-reasoning"></div>
+        </div>
+
+        <div id="scores-grid" class="scores-grid"></div>
+
+        <div class="stage3-placeholder">
+          <h3>Gap Analysis</h3>
+          <p>Coming in the next version — will identify what's missing from your artifact and suggest the highest-impact improvement.</p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

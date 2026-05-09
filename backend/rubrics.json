@@ -1,0 +1,136 @@
+{
+  "rubrics": [
+    {
+      "id": "clarity",
+      "name": "Clarity & Communication",
+      "description": "How easy is it to understand what the author is saying? Are ideas expressed without unnecessary ambiguity?",
+      "scoring_guide": {
+        "0-3": "Confusing, hard to follow, reader regularly loses the thread",
+        "4-6": "Mostly understandable but some passages require re-reading",
+        "7-10": "Clear throughout, reader always knows what is being said and why"
+      },
+      "applicable_to": ["essay", "report", "email", "proposal", "general"]
+    },
+    {
+      "id": "structure",
+      "name": "Structure & Organization",
+      "description": "Does the piece have a logical flow? Is there a clear beginning, middle, and end? Do sections connect to each other?",
+      "scoring_guide": {
+        "0-3": "No discernible structure, ideas appear in random order",
+        "4-6": "Some structure present but transitions are weak or ordering is questionable",
+        "7-10": "Well-organized, each section earns its place, transitions are smooth"
+      },
+      "applicable_to": ["essay", "report", "proposal", "general"]
+    },
+    {
+      "id": "logical_coherence",
+      "name": "Logical Coherence",
+      "description": "Do the claims and conclusions follow from the premises? Are there contradictions, logical leaps, or non-sequiturs?",
+      "scoring_guide": {
+        "0-3": "Multiple contradictions or non-sequiturs that undermine the argument",
+        "4-6": "Generally logical but with at least one noticeable gap or inconsistency",
+        "7-10": "Reasoning is internally consistent and conclusions follow from evidence"
+      },
+      "applicable_to": ["essay", "report", "argument", "analysis", "general"]
+    },
+    {
+      "id": "evidence",
+      "name": "Evidence & Support",
+      "description": "Are claims backed by examples, data, citations, or concrete detail? Or are assertions left unsupported?",
+      "scoring_guide": {
+        "0-3": "Assertions with no supporting evidence or examples whatsoever",
+        "4-6": "Some evidence present but major claims left unsupported",
+        "7-10": "Claims are consistently backed by relevant, specific evidence"
+      },
+      "applicable_to": ["essay", "report", "analysis", "research", "general"]
+    },
+    {
+      "id": "depth",
+      "name": "Depth of Analysis",
+      "description": "Does the piece go beyond surface-level observations? Does it engage with complexity, nuance, or trade-offs?",
+      "scoring_guide": {
+        "0-3": "Stays entirely at surface level, no engagement with nuance or complexity",
+        "4-6": "Some depth in places but misses significant complexity or counterarguments",
+        "7-10": "Engages seriously with complexity, explores implications, considers multiple angles"
+      },
+      "applicable_to": ["essay", "report", "analysis", "general"]
+    },
+    {
+      "id": "relevance",
+      "name": "Relevance & Focus",
+      "description": "Does the content stay on-topic? Is there unnecessary padding, filler, or tangential material?",
+      "scoring_guide": {
+        "0-3": "Frequently wanders off-topic, significant padding or filler present",
+        "4-6": "Mostly focused but includes some tangential or redundant material",
+        "7-10": "Tightly focused, every sentence earns its place, no wasted space"
+      },
+      "applicable_to": ["email", "proposal", "report", "essay", "general"]
+    },
+    {
+      "id": "originality",
+      "name": "Originality & Creativity",
+      "description": "Does the piece offer a fresh perspective, novel framing, or creative insight? Or does it repeat conventional wisdom?",
+      "scoring_guide": {
+        "0-3": "Entirely conventional, no original thought or fresh angle",
+        "4-6": "Mostly familiar territory with occasional fresh observation",
+        "7-10": "Genuinely novel framing or insight that adds value beyond existing discourse"
+      },
+      "applicable_to": ["essay", "proposal", "creative", "general"]
+    },
+    {
+      "id": "actionability",
+      "name": "Actionability",
+      "description": "If the piece makes recommendations, are they specific enough to act on? Does the reader know what to do next?",
+      "scoring_guide": {
+        "0-3": "Recommendations are vague, absent, or impossible to act on",
+        "4-6": "Some actionable items but others remain too abstract or ambiguous",
+        "7-10": "Clear, specific next steps that a reader can immediately implement"
+      },
+      "applicable_to": ["proposal", "report", "email", "plan", "general"]
+    },
+    {
+      "id": "completeness",
+      "name": "Completeness",
+      "description": "Does the piece cover all important aspects of its stated topic? Are obvious gaps or omissions present?",
+      "scoring_guide": {
+        "0-3": "Significant gaps leave key questions unanswered or important aspects untouched",
+        "4-6": "Covers the main points but misses secondary important aspects",
+        "7-10": "Comprehensive coverage given the stated scope, no important omissions"
+      },
+      "applicable_to": ["report", "proposal", "analysis", "general"]
+    },
+    {
+      "id": "conciseness",
+      "name": "Conciseness",
+      "description": "Is the piece as short as it can be while still being complete? Is there word inflation, redundancy, or filler?",
+      "scoring_guide": {
+        "0-3": "Highly verbose, could be cut by 50%+ without losing meaningful content",
+        "4-6": "Some redundancy or filler but not egregiously wordy",
+        "7-10": "Tight writing, no wasted words, every sentence adds something"
+      },
+      "applicable_to": ["email", "essay", "report", "general"]
+    },
+    {
+      "id": "technical_accuracy",
+      "name": "Technical Accuracy",
+      "description": "For pieces making factual or technical claims: are those claims correct and appropriately caveated?",
+      "scoring_guide": {
+        "0-3": "Contains significant factual errors that would mislead the reader",
+        "4-6": "Mostly accurate but with noticeable errors or harmful oversimplifications",
+        "7-10": "Technically sound, claims are accurate and caveated where appropriate"
+      },
+      "applicable_to": ["technical", "research", "analysis", "report", "general"]
+    },
+    {
+      "id": "professional_tone",
+      "name": "Professional Tone",
+      "description": "Is the register appropriate for the context? Does the tone match the intended audience and purpose?",
+      "scoring_guide": {
+        "0-3": "Tone is clearly mismatched for context (too casual, too aggressive, condescending, etc.)",
+        "4-6": "Tone is mostly appropriate with occasional lapses",
+        "7-10": "Tone is consistently appropriate and well-calibrated to the audience"
+      },
+      "applicable_to": ["email", "report", "proposal", "general"]
+    }
+  ]
+}
