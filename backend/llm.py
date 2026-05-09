@@ -119,6 +119,10 @@ _FALLBACK_EXCEPTIONS: tuple[type[BaseException], ...] = (
 )
 
 
+def _provider_label(provider: "LLMProvider") -> str:
+    return f"{type(provider).__name__}({getattr(provider, 'model', '?')})"
+
+
 class LLMRouter:
     """Wraps two providers — primary first, fallback on rate-limit / timeout / bad schema."""
 
@@ -132,15 +136,25 @@ class LLMRouter:
         user: str,
         response_model: type[T],
         temperature: float,
+        label: str = "llm_call",
     ) -> T:
         try:
-            return await self.primary.generate_structured(
+            result = await self.primary.generate_structured(
                 system, user, response_model, temperature
             )
-        except _FALLBACK_EXCEPTIONS:
-            return await self.fallback.generate_structured(
+            print(f"[{label}] {_provider_label(self.primary)} ok", flush=True)
+            return result
+        except _FALLBACK_EXCEPTIONS as e:
+            print(
+                f"[{label}] {_provider_label(self.primary)} failed "
+                f"({type(e).__name__}); falling back to {_provider_label(self.fallback)}",
+                flush=True,
+            )
+            result = await self.fallback.generate_structured(
                 system, user, response_model, temperature
             )
+            print(f"[{label}] {_provider_label(self.fallback)} ok (fallback)", flush=True)
+            return result
 
 
 @lru_cache

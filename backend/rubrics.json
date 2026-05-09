@@ -131,6 +131,17 @@
         "7-10": "Tone is consistently appropriate and well-calibrated to the audience"
       },
       "applicable_to": ["email", "report", "proposal", "general"]
+    },
+    {
+      "id": "functional_correctness",
+      "name": "Functional Correctness & Execution",
+      "description": "Does the code actually do what it's intended to do? Will it run successfully end-to-end without errors, crashes, or memory leaks? Is it efficient and optimized for its purpose?",
+      "scoring_guide": {
+        "0-3": "Fails to execute, throws errors, has memory leaks, contains obvious bugs, or is incomplete and does not fulfill its stated purpose",
+        "4-6": "Runs but with notable issues — partial functionality, edge-case bugs, inefficient algorithms, or only partially achieves its intended purpose",
+        "7-10": "Executes correctly end-to-end, fulfills its intended purpose, handles edge cases, and is efficient/optimized in its approach"
+      },
+      "applicable_to": ["code", "technical", "general"]
     }
   ]
 }

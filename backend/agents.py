@@ -20,11 +20,11 @@ from prompts import (
 )
 
 # --- Config ---
-N_SCORING_RUNS = 3            # set to 1 for faster demos
+N_SCORING_RUNS = 1            # set to 1 for faster demos
 MIN_RUBRICS = 3
 MAX_RUBRICS = 6
 SELECTION_TEMPERATURE = 0.4
-SCORING_TEMPERATURE = 0.2
+SCORING_TEMPERATURE = 0
 
 # Used to pad selection up to MIN_RUBRICS if model returns too few
 _FALLBACK_RUBRIC_IDS = ("clarity", "structure", "relevance", "depth", "completeness")
@@ -57,6 +57,7 @@ async def select_rubrics(
             user=user_msg,
             response_model=RubricSelection,
             temperature=SELECTION_TEMPERATURE,
+            label="select_rubrics",
         )
     except Exception as e:
         raise ValueError(f"Rubric selection failed: {e}") from e
@@ -103,13 +104,14 @@ async def score_rubric(
     scores: list[float] = []
     reasonings: list[str] = []
 
-    for _ in range(n_runs):
+    for run_idx in range(n_runs):
         try:
             run = await llm.generate_structured(
                 system=SCORING_SYSTEM,
                 user=user_msg,
                 response_model=RubricScoreResponse,
                 temperature=SCORING_TEMPERATURE,
+                label=f"score:{rubric.id}#{run_idx + 1}",
             )
             # Schema enforces 0-10 already, but clamp defensively
             score = max(0.0, min(10.0, float(run.score)))
