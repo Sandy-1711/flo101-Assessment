@@ -75,9 +75,9 @@ async function runEvaluation() {
     return;
   }
   const wordCount = text.split(/\s+/).filter(Boolean).length;
-  if (wordCount < 30) {
+  if (wordCount < 10) {
     hideAll();
-    showError("The text is too short. Need at least 30 words.");
+    showError("The text is too short. Need at least 10 words.");
     return;
   }
   if (text.length > 15000) {

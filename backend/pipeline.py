@@ -10,26 +10,32 @@ To change the order, add a stage, or swap an agent — edit `evaluate_artifact`.
 """
 
 import asyncio
+import os
 
 from agents import score_rubric, select_rubrics
 from llm import get_llm_router
 from schemas import EvaluationResult, load_rubrics
 
+# Selection: Groq primary (cheap, structured), Gemini fallback.
+# Scoring: Gemini 2.5-pro primary (better reasoning), Groq fallback.
+SCORING_GEMINI_MODEL = os.getenv("SCORING_GEMINI_MODEL", "gemini-2.5-pro")
+
 
 async def evaluate_artifact(artifact: str) -> EvaluationResult:
-    llm = get_llm_router()
+    selection_llm = get_llm_router(primary="groq")
+    scoring_llm = get_llm_router(primary="gemini", gemini_model=SCORING_GEMINI_MODEL)
     rubrics = load_rubrics()
     rubric_map = {r.id: r for r in rubrics}
 
     # Stage 1
-    selection = await select_rubrics(artifact, rubrics, llm)
+    selection = await select_rubrics(artifact, rubrics, selection_llm)
 
     # Stage 2 — fan out across rubrics, sequential within each rubric
     selected_rubrics = [
         rubric_map[rid] for rid in selection.selected_rubric_ids if rid in rubric_map
     ]
     score_results = await asyncio.gather(
-        *(score_rubric(artifact, r, llm) for r in selected_rubrics)
+        *(score_rubric(artifact, r, scoring_llm) for r in selected_rubrics)
     )
 
     # Stage 3 — gap analysis (placeholder for the next iteration)

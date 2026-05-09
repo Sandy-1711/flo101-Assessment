@@ -1,4 +1,4 @@
-RUBRIC_SELECTION_SYSTEM = """You are an expert writing evaluator. Your job is to look at a piece of text and decide which quality dimensions are most worth measuring for that specific text. You return only valid JSON, nothing else. No markdown, no explanation outside the JSON."""
+RUBRIC_SELECTION_SYSTEM = """You are an expert writing evaluator. Your job is to look at a piece of text and decide which quality dimensions are most worth measuring for that specific text. You return only valid JSON, nothing else. No markdown, no explanation outside the JSON. No thinking."""
 
 RUBRIC_SELECTION_USER = """Here is a piece of text to evaluate:
 

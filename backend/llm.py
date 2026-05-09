@@ -15,14 +15,15 @@ from typing import Protocol, TypeVar
 
 import groq as groq_sdk
 from google import genai
+from google.genai import errors as genai_errors
 from google.genai import types as genai_types
 from pydantic import BaseModel, ValidationError
 
 T = TypeVar("T", bound=BaseModel)
 
 # --- Defaults ---
-DEFAULT_GROQ_MODEL = "llama-3.1-8b-instant"
-DEFAULT_GEMINI_MODEL = "gemini-2.0-flash-lite"
+DEFAULT_GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
+DEFAULT_GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash-lite")
 DEFAULT_TIMEOUT = 30.0
 DEFAULT_MAX_TOKENS = 512
 
@@ -107,11 +108,12 @@ class GeminiProvider:
 
 
 # Errors that should trigger fallback to the secondary provider.
-# Anything else (auth errors, programming bugs) propagates up.
+# Covers both Groq and Gemini since either may be primary.
 _FALLBACK_EXCEPTIONS: tuple[type[BaseException], ...] = (
     groq_sdk.RateLimitError,
     groq_sdk.APITimeoutError,
     groq_sdk.APIConnectionError,
+    genai_errors.APIError,  # base — covers ClientError (incl. 429) + ServerError
     asyncio.TimeoutError,
     ValidationError,
 )
@@ -142,8 +144,11 @@ class LLMRouter:
 
 
 @lru_cache
-def get_llm_router() -> LLMRouter:
-    """Default router: Groq primary, Gemini fallback. Cached after first call."""
+def get_llm_router(
+    primary: str = "groq",
+    gemini_model: str = DEFAULT_GEMINI_MODEL,
+) -> LLMRouter:
+    """Router with configurable primary. Cached per (primary, gemini_model)."""
     groq_key = os.getenv("GROQ_API_KEY")
     gemini_key = os.getenv("GEMINI_API_KEY")
     if not groq_key:
@@ -151,7 +156,11 @@ def get_llm_router() -> LLMRouter:
     if not gemini_key:
         raise RuntimeError("GEMINI_API_KEY not set")
 
-    return LLMRouter(
-        primary=GroqProvider(api_key=groq_key),
-        fallback=GeminiProvider(api_key=gemini_key),
-    )
+    groq = GroqProvider(api_key=groq_key)
+    gemini = GeminiProvider(api_key=gemini_key, model=gemini_model)
+
+    if primary == "groq":
+        return LLMRouter(primary=groq, fallback=gemini)
+    if primary == "gemini":
+        return LLMRouter(primary=gemini, fallback=groq)
+    raise ValueError(f"Unknown primary provider: {primary!r}")

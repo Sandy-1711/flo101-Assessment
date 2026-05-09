@@ -1,11 +1,14 @@
 from pathlib import Path
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from pipeline import evaluate_artifact
+load_dotenv(Path(__file__).parent.parent / ".env")
+
+from pipeline import evaluate_artifact  # noqa: E402
 
 app = FastAPI(title="Critic Agent")
 
@@ -13,7 +16,7 @@ FRONTEND_DIR = Path(__file__).parent.parent / "frontend"
 
 app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
 
-MIN_WORDS = 30
+MIN_WORDS = 10
 MAX_CHARS = 15000
 
 
