@@ -47,7 +47,7 @@ async def select_rubrics(
     Raises ValueError if both providers fail.
     """
     rubrics_list = "\n".join(
-        f"- id: {r.id} | name: {r.name} | description: {r.description}"
+        f"- id: {r.id} | applicable_to: {r.applicable_to} | name: {r.name} — {r.description}"
         for r in rubrics
     )
     user_msg = RUBRIC_SELECTION_USER.format(

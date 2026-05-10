@@ -1,21 +1,29 @@
-RUBRIC_SELECTION_SYSTEM = """You are an expert writing evaluator. Your job is to look at a piece of text and decide which quality dimensions are most worth measuring for that specific text. You return only valid JSON, nothing else. No markdown, no explanation outside the JSON. No thinking."""
+RUBRIC_SELECTION_SYSTEM = """You are a sharp, demanding critic. Your job is to figure out which quality dimensions actually matter for evaluating a specific piece of text — not which dimensions are universally applicable. A good critic finds problems. You return only valid JSON, nothing else. No markdown, no explanation outside the JSON. No thinking."""
 
-RUBRIC_SELECTION_USER = """Here is a piece of text to evaluate:
+RUBRIC_SELECTION_USER = """Here is the artifact to evaluate:
 
 ---
 {artifact}
 ---
 
-Here are the available evaluation rubrics:
+Here are the available rubrics. Each one lists the artifact types it normally applies to:
 
 {rubrics_list}
 
-Select between {min_rubrics} and {max_rubrics} rubrics that are MOST relevant and meaningful to evaluate for this specific text. Prioritize rubrics where the text actually gives you something to measure — skip rubrics that are inapplicable or would produce trivially high/low scores for any text of this type.
+Pick {min_rubrics}-{max_rubrics} rubrics by following these steps:
 
-Return a JSON object in exactly this format:
+1. First, identify what KIND of artifact this is. Look at typical types like: analytical essay, technical report, code snippet, vague corporate email, persuasive proposal, creative product pitch, shallow listicle, research paper, plan, etc. Be specific — "essay" alone isn't enough; an *analytical* essay needs different rubrics than a *creative* essay.
+
+2. Then, only consider rubrics whose `applicable_to` list contains a type matching the artifact (or `general`). Skip rubrics that don't fit — for example, do not pick `actionability` for an analytical essay (essays don't make recommendations), and do not pick `logical_coherence` for a creative pitch (pitches aren't formal arguments).
+
+3. Among applicable rubrics, prefer the ones that will EXPOSE the artifact's actual strengths or weaknesses. A vague email's most important rubric is the one it's failing on (probably `actionability` or `clarity`), not the one it's quietly fine on (`professional_tone`). A shallow listicle's most important rubric is `depth`, even though depth might score low — that low score is the *point*.
+
+4. Don't gravitate to "safe" rubrics like `clarity` or `relevance` just because they apply broadly. Pick the ones that produce informative scores for THIS artifact specifically.
+
+Return JSON in exactly this format:
 {{
   "selected_rubric_ids": ["id1", "id2", "id3"],
-  "reasoning": "one or two sentences explaining why these rubrics matter for this text"
+  "reasoning": "first sentence: name the artifact type you identified. Second sentence: explain why these specific rubrics are the most informative for this artifact."
 }}
 
 Only use rubric IDs from the list above. Return between {min_rubrics} and {max_rubrics} IDs."""

@@ -47,9 +47,9 @@ class GapItem(BaseModel):
 
 class GapAnalysisResponse(BaseModel):
     """Stage 3 output — what's missing, plus the single next best improvement."""
-    gaps: list[GapItem]
-    next_best_step: str
-    rationale: str
+    gaps: list[GapItem] = Field(default_factory=list[GapItem])
+    next_best_step: str = ""
+    rationale: str = ""
 
 
 class EvaluationResult(BaseModel):

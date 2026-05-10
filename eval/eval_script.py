@@ -12,12 +12,14 @@ Usage:
 Exit code 0 if all targets met, 1 otherwise.
 
 Rate-limit math (free tier, late 2025):
-  - Primary across all stages : Groq openai/gpt-oss-120b (~30 RPM free tier)
+  - Primary across all stages : Groq openai/gpt-oss-120b (30 RPM, ~8k TPM)
   - Fallbacks                 : gemini-2.5-flash-lite (Stage 1) / gemini-2.5-flash (Stage 2+3)
-  Each /evaluate fires roughly: 1 selection + 5 parallel scoring + 1 gap = 7 calls.
-  At 30 RPM Groq, ~4 entries/min is safe. Default --delay 15s leaves comfortable headroom
-  and lets the eval finish in ~75 seconds. If you hit a 429/503, the script auto-retries
-  once after RATE_LIMIT_RETRY_DELAY seconds.
+  Each /evaluate fires roughly: 1 selection + 5 parallel scoring + 1 gap = 7 calls,
+  ≈ 7,000 tokens. The bottleneck is Groq's TPM (tokens-per-minute), not RPM. Two
+  evaluations in 60s would consume ~14k tokens, over the 8k TPM ceiling and the 5th
+  scoring call ends up rate-limited (it falls back to Gemini, but the data gets mixed).
+  Default --delay 60s keeps each evaluation inside its own TPM window. ~5 min per run.
+  The script also retries once on 429/503 after RATE_LIMIT_RETRY_DELAY seconds.
 """
 
 import argparse
@@ -33,7 +35,7 @@ RECALL_TARGET = 0.85
 SCORE_ACCURACY_TARGET = 0.80
 MAX_EXCLUDE_VIOLATIONS = 0
 
-DEFAULT_INTER_ENTRY_DELAY = 15.0   # seconds between entries (~30 RPM Groq primary leaves room)
+DEFAULT_INTER_ENTRY_DELAY = 60.0   # seconds between entries — tuned for Groq gpt-oss-120b 8k TPM free-tier ceiling
 RATE_LIMIT_RETRY_DELAY = 60.0      # seconds to wait before retrying after a rate-limit error
 
 
@@ -177,7 +179,7 @@ def main() -> None:
 
     entries: list[dict[str, Any]] = golden["entries"]
     print(f"\nCritic Agent Eval -- {len(entries)} entries against {args.api_url}")
-    print(f"Inter-entry delay: {args.delay}s (tuned for Groq ~30 RPM free tier)")
+    print(f"Inter-entry delay: {args.delay}s (tuned to stay under Groq gpt-oss-120b's 8k TPM ceiling)")
     print("=" * 60)
 
     results: list[dict[str, Any]] = []

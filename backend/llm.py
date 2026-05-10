@@ -23,7 +23,7 @@ T = TypeVar("T", bound=BaseModel)
 
 # --- Defaults ---
 DEFAULT_GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
-DEFAULT_GEMINI_MODEL = "gemini-2.5-flash-lite"  # callers in pipeline.py override per stage
+DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"  # callers in pipeline.py override per stage
 DEFAULT_TIMEOUT = float(os.getenv("LLM_TIMEOUT_SECONDS", "30"))
 DEFAULT_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "512"))
 
@@ -145,9 +145,11 @@ class LLMRouter:
             print(f"[{label}] {_provider_label(self.primary)} ok", flush=True)
             return result
         except _FALLBACK_EXCEPTIONS as e:
+            # Pydantic's ValidationError stringifies into the field-level mismatch — useful for prompt iteration.
+            detail = f": {str(e)[:300]}" if isinstance(e, ValidationError) else ""
             print(
                 f"[{label}] {_provider_label(self.primary)} failed "
-                f"({type(e).__name__}); falling back to {_provider_label(self.fallback)}",
+                f"({type(e).__name__}){detail}; falling back to {_provider_label(self.fallback)}",
                 flush=True,
             )
             result = await self.fallback.generate_structured(
