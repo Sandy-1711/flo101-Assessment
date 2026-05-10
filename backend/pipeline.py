@@ -16,13 +16,14 @@ from agents import analyze_gaps, score_rubric, select_rubrics
 from llm import get_llm_router
 from schemas import EvaluationResult, load_rubrics
 
-# Selection: Groq primary (cheap, structured), Gemini fallback.
-# Scoring + Gap analysis: Gemini 2.5-flash primary (good reasoning, generous free tier), Groq fallback.
+# Selection: Gemini-2.5-flash-lite primary (fast, cheap, 15 RPM free tier), Groq fallback.
+# Scoring + Gap analysis: Gemini-2.5-flash primary (better reasoning, 10 RPM free tier), Groq fallback.
+SELECTION_GEMINI_MODEL = os.getenv("SELECTION_GEMINI_MODEL", "gemini-2.5-flash-lite")
 SCORING_GEMINI_MODEL = os.getenv("SCORING_GEMINI_MODEL", "gemini-2.5-flash")
 
 
 async def evaluate_artifact(artifact: str) -> EvaluationResult:
-    selection_llm = get_llm_router(primary="groq")
+    selection_llm = get_llm_router(primary="gemini", gemini_model=SELECTION_GEMINI_MODEL)
     scoring_llm = get_llm_router(primary="gemini", gemini_model=SCORING_GEMINI_MODEL)
     rubrics = load_rubrics()
     rubric_map = {r.id: r for r in rubrics}

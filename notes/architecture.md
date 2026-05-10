@@ -9,8 +9,8 @@ This is the longer-form companion to the README. The README covers *how to run i
 
 - **Backend**: FastAPI (Python 3.11+), fully async.
 - **LLM providers**: two free-tier APIs.
-  - **Groq** (`llama-3.3-70b-versatile`) — fast, generous free tier, JSON mode for structured output.
-  - **Gemini** (`gemini-2.5-flash` for scoring + gap analysis, `gemini-2.0-flash-lite` as Stage 1 fallback) — good reasoning, native `response_schema` support so I don't have to parse-and-pray.
+  - **Gemini** is the primary across all three stages — `gemini-2.5-flash-lite` for Stage 1 (selection), `gemini-2.5-flash` for Stage 2 and Stage 3 (scoring + gap analysis). Native `response_schema` support means I don't have to parse-and-pray.
+  - **Groq** (`llama-3.3-70b-versatile`) is the fallback for every stage — fast, generous free tier, JSON mode for structured output. If Gemini rate-limits or times out, the router transparently switches to Groq.
 - **Validation**: Pydantic v2 everywhere — every LLM call returns a typed model.
 - **Frontend**: plain HTML + vanilla JS + a single CSS file. 
 - **Eval harness**: a standalone Python script + a 5-entry golden set in JSON. Runs against the live server, exits 0/1.
@@ -30,7 +30,7 @@ A few decisions worth naming explicitly:
 
 **Why select rubrics instead of scoring all 13?** Two reasons. Cost — I'd be making 13 scoring calls per evaluation instead of 3–6, and the free tier doesn't love that. But the bigger reason is *quality*: forcing the model to score "technical accuracy" on an essay is not worth it. The scores stop meaning anything if every rubric gets used on every artifact. The selection step is a filter that keeps the output trustworthy.
 
-**Why two providers with fallback?** Free-tier rate limits. If Groq throttles, the system needs to keep working. The router in `llm.py` switches on rate-limit / timeout / connection / schema-validation errors. Same router is reused in both directions — Groq-primary for selection, Gemini-primary for scoring + gap analysis.
+**Why two providers with fallback?** Free-tier rate limits. If Gemini throttles, the system needs to keep working. The router in `llm.py` switches on rate-limit / timeout / connection / schema-validation errors. Every stage uses Gemini as primary and Groq as fallback — Stage 1 with `gemini-2.5-flash-lite` (15 RPM free tier, plenty for a single selection call per evaluation), Stage 2 and 3 with `gemini-2.5-flash` (10 RPM, decent reasoning).
 
 **Why Gemini-flash for scoring, not Gemini-pro?** I started with `gemini-2.5-pro` because reasoning quality matters more for scoring than for selection. But the free-tier rate limit on 2.5-pro is tight enough that almost every scoring call was hitting `ClientError` and falling back to Groq — which defeated the point of having pro as primary. `gemini-2.5-flash` is a small quality drop but a much higher rate limit, so the primary actually gets to do its job.
 
@@ -46,13 +46,13 @@ A few decisions worth naming explicitly:
 
 **Input**: the artifact (string), and the full list of 13 rubrics with their IDs, names, and descriptions.
 
-**What it does**: one call to Groq (`llama-3.3-70b-versatile`) with JSON mode on. The model sees every rubric and picks 3–6 that are *meaningful for this specific artifact*. The prompt explicitly tells it to skip rubrics that would be inapplicable or trivially high/low — that's how a haiku avoids being scored on technical accuracy.
+**What it does**: one call to Gemini (`gemini-2.5-flash-lite`) with `response_schema` on. The model sees every rubric and picks 3–6 that are *meaningful for this specific artifact*. The prompt explicitly tells it to skip rubrics that would be inapplicable or trivially high/low — that's how a haiku avoids being scored on technical accuracy. Flash-lite is cheap, fast, and has 15 RPM free-tier headroom; Groq is the fallback if Gemini throttles.
 
 **Output**: `RubricSelection { selected_rubric_ids: [str], reasoning: str }`. The reasoning is shown in the UI underneath the score grid so the user can see *why* these dimensions were chosen.
 
 **Safety net**: if the model returns fewer than `MIN_RUBRICS=3` valid IDs (rare, but happens when it hallucinates an ID that isn't in the list), I pad up using a hardcoded list of general-purpose fallbacks (`clarity`, `structure`, `relevance`, `depth`, `completeness`). The list is also capped at `MAX_RUBRICS=6` so the model can't blow up the API budget by selecting all 13.
 
-**Failure**: if Groq fails *and* Gemini fallback fails, this is the one place that raises. The API surfaces it as a 422 `rubric_selection_failed`. Without selected rubrics there's nothing for the rest of the pipeline to do.
+**Failure**: if Gemini fails *and* Groq fallback fails, this is the one place that raises. The API surfaces it as a 422 `rubric_selection_failed`. Without selected rubrics there's nothing for the rest of the pipeline to do.
 
 ### Stage 2 — Per-Rubric Scoring
 

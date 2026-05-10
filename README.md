@@ -20,7 +20,7 @@ Three stages, orchestrated in [backend/pipeline.py](backend/pipeline.py). Each s
 ```
                 ┌─────────────────────────────────────────────┐
    artifact ──► │  Stage 1: Rubric Selection                  │
-                │  (Groq primary, Gemini fallback)            │
+                │  (Gemini-2.5-flash-lite primary, Groq fb)   │
                 └────────────────┬────────────────────────────┘
                                  │ 3–6 rubric IDs + reasoning
                                  ▼
@@ -43,7 +43,7 @@ Three stages, orchestrated in [backend/pipeline.py](backend/pipeline.py). Each s
 - **Input**: `artifact` (string), full list of 13 rubrics (id + name + description).
 - **Does**: one LLM call. Picks 3–6 rubrics that are *actually meaningful* for this artifact.
 - **Output**: `RubricSelection { selected_rubric_ids: [str], reasoning: str }`.
-- **Provider**: Groq (`llama-3.3-70b-versatile`) primary, Gemini fallback. Cheap and fast — selection is high-volume, low-stakes.
+- **Provider**: Gemini-2.5-flash-lite primary, Groq (`llama-3.3-70b-versatile`) fallback. Selection is a small structured-JSON task — flash-lite is fast, cheap, and has a generous 15 RPM free tier; Groq stays in reserve if Gemini throttles.
 - **Safety net**: if the model returns fewer than `MIN_RUBRICS`, the result is padded with general-purpose fallbacks (`clarity`, `structure`, `relevance`, `depth`, `completeness`).
 - **If both providers fail**: raises `ValueError` → API returns 422.
 
@@ -106,7 +106,7 @@ The provider abstraction lives in [backend/llm.py](backend/llm.py). `LLMRouter` 
 - connection errors
 - schema validation failures (Pydantic `ValidationError` — i.e. the model returned malformed JSON)
 
-Both stages use the same router class with different primaries: Groq-first for selection, Gemini-first for scoring.
+All three stages use the same router class — Gemini-first as the primary, Groq as the fallback. Stage 1 uses `gemini-2.5-flash-lite` (smaller, cheaper, 15 RPM free tier) since selection is a lightweight task; Stage 2 and Stage 3 use `gemini-2.5-flash` (better reasoning) and share the same router instance.
 
 **Three explicit failure cases**, all handled in [backend/main.py](backend/main.py):
 1. **Bad input** — empty / under `MIN_WORDS` / over `MAX_CHARS` → 400 with a clear message *before* any API call.
@@ -140,8 +140,8 @@ Prereqs: Python 3.11+, a [Groq](https://console.groq.com) free-tier key, a [Gemi
 | --- | --- | --- |
 | `GROQ_API_KEY` | — | required |
 | `GEMINI_API_KEY` | — | required |
-| `GROQ_MODEL` | `llama-3.3-70b-versatile` | default Groq model |
-| `GEMINI_MODEL` | `gemini-2.0-flash-lite` | default Gemini model (used as Stage 1 fallback) |
+| `GROQ_MODEL` | `llama-3.3-70b-versatile` | Groq model (Stage 1 fallback, Stage 2/3 fallback) |
+| `SELECTION_GEMINI_MODEL` | `gemini-2.5-flash-lite` | Gemini model used as Stage 1 primary |
 | `SCORING_GEMINI_MODEL` | `gemini-2.5-flash` | Gemini model used as Stage 2 + 3 primary |
 | `N_SCORING_RUNS` | `1` | how many times each rubric is scored, then averaged |
 | `MIN_RUBRICS` / `MAX_RUBRICS` | `3` / `6` | bounds on Stage 1 output |

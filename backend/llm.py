@@ -23,7 +23,7 @@ T = TypeVar("T", bound=BaseModel)
 
 # --- Defaults ---
 DEFAULT_GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
-DEFAULT_GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.0-flash-lite")
+DEFAULT_GEMINI_MODEL = "gemini-2.5-flash-lite"  # callers in pipeline.py override per stage
 DEFAULT_TIMEOUT = float(os.getenv("LLM_TIMEOUT_SECONDS", "30"))
 DEFAULT_MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "512"))
 
