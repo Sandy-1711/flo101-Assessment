@@ -20,19 +20,19 @@ Three stages, orchestrated in [backend/pipeline.py](backend/pipeline.py). Each s
 ```
                 ┌─────────────────────────────────────────────┐
    artifact ──► │  Stage 1: Rubric Selection                  │
-                │  (Gemini-2.5-flash-lite primary, Groq fb)   │
+                │  (Groq gpt-oss-120b primary, Gemini fb)     │
                 └────────────────┬────────────────────────────┘
                                  │ 3–6 rubric IDs + reasoning
                                  ▼
                 ┌─────────────────────────────────────────────┐
    artifact ──► │  Stage 2: Per-Rubric Scoring (parallel)     │
-                │  (Gemini-2.5-flash primary, Groq fallback)    │
+                │  (Groq gpt-oss-120b primary, Gemini fb)     │
                 └────────────────┬────────────────────────────┘
                                  │ score 0–10 + reasoning, per rubric
                                  ▼
                 ┌─────────────────────────────────────────────┐
    artifact ──► │  Stage 3: Gap Analysis                      │
-                │  (Gemini-2.5-flash primary, Groq fallback)    │
+                │  (Groq gpt-oss-120b primary, Gemini fb)     │
                 └────────────────┬────────────────────────────┘
                                  │ gaps + next best step + rationale
                                  ▼
@@ -43,7 +43,7 @@ Three stages, orchestrated in [backend/pipeline.py](backend/pipeline.py). Each s
 - **Input**: `artifact` (string), full list of 13 rubrics (id + name + description).
 - **Does**: one LLM call. Picks 3–6 rubrics that are *actually meaningful* for this artifact.
 - **Output**: `RubricSelection { selected_rubric_ids: [str], reasoning: str }`.
-- **Provider**: Gemini-2.5-flash-lite primary, Groq (`llama-3.3-70b-versatile`) fallback. Selection is a small structured-JSON task — flash-lite is fast, cheap, and has a generous 15 RPM free tier; Groq stays in reserve if Gemini throttles.
+- **Provider**: Groq (`openai/gpt-oss-120b`) primary, Gemini (`gemini-2.5-flash-lite`) fallback. Groq's free-tier RPM is generous enough to handle Stage 2's parallel burst without throttling, and gpt-oss-120b is capable enough for the small structured-JSON selection task.
 - **Safety net**: if the model returns fewer than `MIN_RUBRICS`, the result is padded with general-purpose fallbacks (`clarity`, `structure`, `relevance`, `depth`, `completeness`).
 - **If both providers fail**: raises `ValueError` → API returns 422.
 
@@ -51,14 +51,14 @@ Three stages, orchestrated in [backend/pipeline.py](backend/pipeline.py). Each s
 - **Input**: `artifact` + the rubrics chosen in Stage 1.
 - **Does**: fans out across rubrics in parallel via `asyncio.gather`. For each rubric, runs N scoring calls (default `N_SCORING_RUNS=1`, configurable) and averages.
 - **Output, per rubric**: `RubricScoreResult { rubric_id, rubric_name, avg_score, individual_scores, score_variance, reasonings, runs_completed, runs_attempted, error? }`.
-- **Provider**: Gemini-2.5-flash primary (good reasoning, much higher free-tier rate limit than 2.5-pro), Groq fallback.
+- **Provider**: Groq (`openai/gpt-oss-120b`) primary, Gemini (`gemini-2.5-flash`) fallback. We tried Gemini-flash as primary but the 10 RPM free-tier limit was too tight when scoring 5+ rubrics in parallel — Groq throughput is the better fit here.
 - **Never raises**: per-run failures are skipped silently. If *all* runs for a rubric fail, that rubric returns `avg_score=null` with an `error` field — the rest of the report is still useful.
 
 ### Stage 3 — Gap Analysis
 - **Input**: artifact + the per-rubric scores and reasonings from Stage 2.
 - **Does**: one LLM call. Identifies 1–4 *gaps* (specific missing elements grounded to a rubric ID), and a single *next best improvement step* with a short rationale.
 - **Output**: `GapAnalysisResponse { gaps: [{rubric_id, gap_description}], next_best_step: str, rationale: str }`.
-- **Provider**: Gemini-2.5-flash primary (reuses the Stage 2 router), Groq fallback.
+- **Provider**: Groq (`openai/gpt-oss-120b`) primary (reuses the Stage 2 router), Gemini (`gemini-2.5-flash`) fallback.
 - **Never raises**: if both providers fail, returns `gap_analysis: null` and the rest of the report still ships. The frontend shows a small "gap analysis was unavailable" notice in that case.
 - **Grounding**: gap entries that reference rubric IDs that weren't actually scored are dropped post-hoc, so the model can't hallucinate dimensions.
 
@@ -106,7 +106,7 @@ The provider abstraction lives in [backend/llm.py](backend/llm.py). `LLMRouter` 
 - connection errors
 - schema validation failures (Pydantic `ValidationError` — i.e. the model returned malformed JSON)
 
-All three stages use the same router class — Gemini-first as the primary, Groq as the fallback. Stage 1 uses `gemini-2.5-flash-lite` (smaller, cheaper, 15 RPM free tier) since selection is a lightweight task; Stage 2 and Stage 3 use `gemini-2.5-flash` (better reasoning) and share the same router instance.
+All three stages use the same router class — Groq (`openai/gpt-oss-120b`) as the primary, Gemini as the fallback. Each stage configures its fallback Gemini model differently: Stage 1 falls back to `gemini-2.5-flash-lite` (lighter, plenty for a selection call); Stage 2 and Stage 3 share a router that falls back to `gemini-2.5-flash` (better for scoring + synthesis). We started with Gemini as primary but the free-tier 10 RPM ceiling was too tight for Stage 2's parallel burst — Groq's RPM is more forgiving and gpt-oss-120b's reasoning quality is strong enough that the fallback rarely needs to fire.
 
 **Three explicit failure cases**, all handled in [backend/main.py](backend/main.py):
 1. **Bad input** — empty / under `MIN_WORDS` / over `MAX_CHARS` → 400 with a clear message *before* any API call.
@@ -140,9 +140,9 @@ Prereqs: Python 3.11+, a [Groq](https://console.groq.com) free-tier key, a [Gemi
 | --- | --- | --- |
 | `GROQ_API_KEY` | — | required |
 | `GEMINI_API_KEY` | — | required |
-| `GROQ_MODEL` | `llama-3.3-70b-versatile` | Groq model (Stage 1 fallback, Stage 2/3 fallback) |
-| `SELECTION_GEMINI_MODEL` | `gemini-2.5-flash-lite` | Gemini model used as Stage 1 primary |
-| `SCORING_GEMINI_MODEL` | `gemini-2.5-flash` | Gemini model used as Stage 2 + 3 primary |
+| `GROQ_MODEL` | `openai/gpt-oss-120b` | Groq model used as primary across all three stages |
+| `SELECTION_GEMINI_MODEL` | `gemini-2.5-flash-lite` | Gemini model used as Stage 1 fallback |
+| `SCORING_GEMINI_MODEL` | `gemini-2.5-flash` | Gemini model used as Stage 2 + 3 fallback |
 | `N_SCORING_RUNS` | `1` | how many times each rubric is scored, then averaged |
 | `MIN_RUBRICS` / `MAX_RUBRICS` | `3` / `6` | bounds on Stage 1 output |
 | `SELECTION_TEMPERATURE` | `0.4` | Stage 1 temp |

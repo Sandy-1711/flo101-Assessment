@@ -12,11 +12,12 @@ Usage:
 Exit code 0 if all targets met, 1 otherwise.
 
 Rate-limit math (free tier, late 2025):
-  - Selection primary  : gemini-2.5-flash-lite  (15 RPM)
-  - Scoring + Stage 3  : gemini-2.5-flash       (10 RPM)  <-- bottleneck
-  Each /evaluate fires roughly: 1 selection + 5 parallel scoring + 1 gap = 6 flash calls.
-  At 10 RPM, that's one entry every ~36 sec to stay safe.
-  Default --delay 40s leaves a small margin; the script also retries once on 429/503.
+  - Primary across all stages : Groq openai/gpt-oss-120b (~30 RPM free tier)
+  - Fallbacks                 : gemini-2.5-flash-lite (Stage 1) / gemini-2.5-flash (Stage 2+3)
+  Each /evaluate fires roughly: 1 selection + 5 parallel scoring + 1 gap = 7 calls.
+  At 30 RPM Groq, ~4 entries/min is safe. Default --delay 15s leaves comfortable headroom
+  and lets the eval finish in ~75 seconds. If you hit a 429/503, the script auto-retries
+  once after RATE_LIMIT_RETRY_DELAY seconds.
 """
 
 import argparse
@@ -32,7 +33,7 @@ RECALL_TARGET = 0.85
 SCORE_ACCURACY_TARGET = 0.80
 MAX_EXCLUDE_VIOLATIONS = 0
 
-DEFAULT_INTER_ENTRY_DELAY = 40.0   # seconds between entries to respect 10 RPM Gemini-flash limit
+DEFAULT_INTER_ENTRY_DELAY = 15.0   # seconds between entries (~30 RPM Groq primary leaves room)
 RATE_LIMIT_RETRY_DELAY = 60.0      # seconds to wait before retrying after a rate-limit error
 
 
@@ -166,7 +167,7 @@ def main() -> None:
         default=DEFAULT_INTER_ENTRY_DELAY,
         help=(
             "Seconds to wait between entries. Default tuned for free-tier "
-            "Gemini-2.5-flash (10 RPM). Lower it if you have higher quota."
+            "Groq (~30 RPM). Raise it if you switch the primary back to Gemini."
         ),
     )
     args = parser.parse_args()
@@ -176,7 +177,7 @@ def main() -> None:
 
     entries: list[dict[str, Any]] = golden["entries"]
     print(f"\nCritic Agent Eval -- {len(entries)} entries against {args.api_url}")
-    print(f"Inter-entry delay: {args.delay}s (respects free-tier Gemini-flash 10 RPM)")
+    print(f"Inter-entry delay: {args.delay}s (tuned for Groq ~30 RPM free tier)")
     print("=" * 60)
 
     results: list[dict[str, Any]] = []
