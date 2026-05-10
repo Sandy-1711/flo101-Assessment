@@ -8,6 +8,11 @@ const loadingMsg = document.getElementById("loading-msg");
 const results = document.getElementById("results");
 const rubricReasoning = document.getElementById("rubric-reasoning");
 const scoresGrid = document.getElementById("scores-grid");
+const gapAnalysisEl = document.getElementById("gap-analysis");
+const gapListEl = document.getElementById("gap-list");
+const nextStepText = document.getElementById("next-step-text");
+const nextStepRationale = document.getElementById("next-step-rationale");
+const gapUnavailableEl = document.getElementById("gap-unavailable");
 
 // Live word count
 textarea.addEventListener("input", () => {
@@ -63,6 +68,39 @@ function buildScoreCard(item) {
     <p class="score-reasoning">${reasoning}</p>
   `;
   return card;
+}
+
+function escapeHtml(s) {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function renderGapAnalysis(gap, rubricNameById) {
+  gapAnalysisEl.classList.add("hidden");
+  gapUnavailableEl.classList.add("hidden");
+
+  if (!gap) {
+    gapUnavailableEl.classList.remove("hidden");
+    return;
+  }
+
+  gapListEl.innerHTML = "";
+  for (const item of gap.gaps || []) {
+    const row = document.createElement("div");
+    row.className = "gap-item";
+    const name = rubricNameById[item.rubric_id] || item.rubric_id;
+    row.innerHTML = `
+      <span class="gap-rubric">${escapeHtml(name)}</span>
+      <span class="gap-desc">${escapeHtml(item.gap_description)}</span>
+    `;
+    gapListEl.appendChild(row);
+  }
+
+  nextStepText.textContent = gap.next_best_step || "";
+  nextStepRationale.textContent = gap.rationale ? `Why: ${gap.rationale}` : "";
+  gapAnalysisEl.classList.remove("hidden");
 }
 
 async function runEvaluation() {
@@ -124,6 +162,14 @@ async function runEvaluation() {
     for (const item of data.scores) {
       scoresGrid.appendChild(buildScoreCard(item));
     }
+
+    // Map rubric_id -> rubric_name so gap entries can show a friendly label
+    const rubricNameById = {};
+    for (const item of data.scores) {
+      rubricNameById[item.rubric_id] = item.rubric_name;
+    }
+
+    renderGapAnalysis(data.gap_analysis, rubricNameById);
 
     results.classList.remove("hidden");
   } catch (e) {

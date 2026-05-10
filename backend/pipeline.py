@@ -4,7 +4,7 @@ Evaluation pipeline orchestration.
 This is the single place where the flow is defined:
     Stage 1: select rubrics
     Stage 2: score each selected rubric (parallel across rubrics)
-    Stage 3: gap analysis (TODO)
+    Stage 3: gap analysis — what's missing + the next best improvement step
 
 To change the order, add a stage, or swap an agent — edit `evaluate_artifact`.
 """
@@ -12,12 +12,12 @@ To change the order, add a stage, or swap an agent — edit `evaluate_artifact`.
 import asyncio
 import os
 
-from agents import score_rubric, select_rubrics
+from agents import analyze_gaps, score_rubric, select_rubrics
 from llm import get_llm_router
 from schemas import EvaluationResult, load_rubrics
 
 # Selection: Groq primary (cheap, structured), Gemini fallback.
-# Scoring: Gemini 2.5-pro primary (better reasoning), Groq fallback.
+# Scoring + Gap analysis: Gemini 2.5-pro primary (better reasoning), Groq fallback.
 SCORING_GEMINI_MODEL = os.getenv("SCORING_GEMINI_MODEL", "gemini-2.5-pro")
 
 
@@ -34,15 +34,15 @@ async def evaluate_artifact(artifact: str) -> EvaluationResult:
     selected_rubrics = [
         rubric_map[rid] for rid in selection.selected_rubric_ids if rid in rubric_map
     ]
-    score_results = await asyncio.gather(
+    score_results = list(await asyncio.gather(
         *(score_rubric(artifact, r, scoring_llm) for r in selected_rubrics)
-    )
+    ))
 
-    # Stage 3 — gap analysis (placeholder for the next iteration)
-    gap_analysis = None
+    # Stage 3 — gap analysis (reuses the scoring router; never raises)
+    gap_analysis = await analyze_gaps(artifact, score_results, scoring_llm)
 
     return EvaluationResult(
         selection=selection,
-        scores=list(score_results),
+        scores=score_results,
         gap_analysis=gap_analysis,
     )

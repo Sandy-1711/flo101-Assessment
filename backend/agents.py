@@ -8,6 +8,7 @@ orchestrator (pipeline.py) decides how they compose.
 import os
 
 from schemas import (
+    GapAnalysisResponse,
     Rubric,
     RubricScoreResponse,
     RubricScoreResult,
@@ -15,6 +16,8 @@ from schemas import (
 )
 from llm import LLMRouter
 from prompts import (
+    GAP_ANALYSIS_SYSTEM,
+    GAP_ANALYSIS_USER,
     RUBRIC_SELECTION_SYSTEM,
     RUBRIC_SELECTION_USER,
     SCORING_SYSTEM,
@@ -27,6 +30,7 @@ MIN_RUBRICS = int(os.getenv("MIN_RUBRICS", "3"))
 MAX_RUBRICS = int(os.getenv("MAX_RUBRICS", "6"))
 SELECTION_TEMPERATURE = float(os.getenv("SELECTION_TEMPERATURE", "0.4"))
 SCORING_TEMPERATURE = float(os.getenv("SCORING_TEMPERATURE", "0"))
+GAP_ANALYSIS_TEMPERATURE = float(os.getenv("GAP_ANALYSIS_TEMPERATURE", "0.3"))
 
 # Used to pad selection up to MIN_RUBRICS if model returns too few
 _FALLBACK_RUBRIC_IDS = ("clarity", "structure", "relevance", "depth", "completeness")
@@ -148,3 +152,43 @@ async def score_rubric(
         runs_completed=len(scores),
         runs_attempted=n_runs,
     )
+
+
+async def analyze_gaps(
+    artifact: str,
+    score_results: list[RubricScoreResult],
+    llm: LLMRouter,
+) -> GapAnalysisResponse | None:
+    """
+    Stage 3 — given the per-rubric scores from Stage 2, identify gaps and the
+    single next best improvement step.
+
+    Never raises. Returns None if both providers fail or no rubric was scored,
+    so the rest of the report still ships to the client.
+    """
+    valid_ids = {r.rubric_id for r in score_results if r.avg_score is not None}
+    if not valid_ids:
+        return None
+
+    scores_block = "\n".join(
+        f"- id: {r.rubric_id} | name: {r.rubric_name} | score: {r.avg_score}/10\n"
+        f"  reasoning: {r.reasonings[0] if r.reasonings else '(no reasoning)'}"
+        for r in score_results
+        if r.avg_score is not None
+    )
+    user_msg = GAP_ANALYSIS_USER.format(artifact=artifact, scores_block=scores_block)
+
+    try:
+        result = await llm.generate_structured(
+            system=GAP_ANALYSIS_SYSTEM,
+            user=user_msg,
+            response_model=GapAnalysisResponse,
+            temperature=GAP_ANALYSIS_TEMPERATURE,
+            label="analyze_gaps",
+        )
+    except Exception:
+        return None
+
+    # Drop gap entries that reference rubric IDs the model didn't actually score
+    result.gaps = [g for g in result.gaps if g.rubric_id in valid_ids]
+    return result

@@ -43,9 +43,18 @@
 
         <div id="scores-grid" class="scores-grid"></div>
 
-        <div class="stage3-placeholder">
+        <div id="gap-analysis" class="gap-analysis hidden">
           <h3>Gap Analysis</h3>
-          <p>Coming in the next version — will identify what's missing from your artifact and suggest the highest-impact improvement.</p>
+          <div id="gap-list" class="gap-list"></div>
+          <div class="next-step">
+            <div class="next-step-label">Next best improvement</div>
+            <p id="next-step-text" class="next-step-text"></p>
+            <p id="next-step-rationale" class="next-step-rationale"></p>
+          </div>
+        </div>
+
+        <div id="gap-unavailable" class="gap-unavailable hidden">
+          Gap analysis was unavailable for this evaluation (both providers failed). The scores above are still valid.
         </div>
       </div>
     </main>

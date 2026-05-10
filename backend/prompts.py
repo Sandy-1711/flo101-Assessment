@@ -43,3 +43,33 @@ Return a JSON object in exactly this format:
 }}
 
 Be honest and specific. Reference actual phrases or passages when possible. Do not inflate scores."""
+
+
+GAP_ANALYSIS_SYSTEM = """You are an editor giving precise, actionable feedback. You have already seen per-dimension scores and reasonings for an artifact. Your job is to identify what is *missing* (not just weak) and recommend the single highest-impact next step the author should take. You return only valid JSON, no markdown, no explanation outside the JSON."""
+
+GAP_ANALYSIS_USER = """Here is the artifact that was evaluated:
+
+---
+{artifact}
+---
+
+Here are the per-rubric scores and reasonings produced earlier:
+
+{scores_block}
+
+Based on the above, do two things:
+
+1. Identify between 1 and 4 concrete *gaps* — things the artifact is missing or under-delivers on. Each gap must be tied to one of the rubric IDs shown above. Focus on the lower-scoring rubrics; do not invent gaps for dimensions that already scored well. A gap is a missing element, not a restatement of the score reasoning.
+
+2. Recommend the single *next best improvement step* — the one change that would unblock the most score gains across these rubrics. It should be specific and doable in one editing pass.
+
+Return a JSON object in exactly this format:
+{{
+  "gaps": [
+    {{"rubric_id": "<id from the list above>", "gap_description": "<one sentence on what's missing>"}}
+  ],
+  "next_best_step": "<one or two sentences on the single most-impactful improvement>",
+  "rationale": "<one or two sentences on why this step beats the alternatives>"
+}}
+
+Only use rubric IDs that appear in the scores above. Be specific — reference actual content from the artifact when you can."""

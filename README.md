@@ -9,7 +9,7 @@ You paste an artifact — an essay, an email, a proposal, a code snippet, whatev
 
 There are **13 rubrics** in total: Clarity, Structure, Logical Coherence, Evidence, Depth of Analysis, Relevance, Originality, Actionability, Completeness, Conciseness, Technical Accuracy, Professional Tone, and Functional Correctness (for code). For any given artifact, **3 to 6** of these get selected.
 
-Stage 3 (gap analysis — *what's missing* + *the next best improvement step*) is the next thing being built. Right now it's a `null` placeholder in the response.
+After scoring, Stage 3 looks at the per-rubric reasonings and tells you *what's missing* and the *single next best improvement step*. So the output isn't just a verdict — it's a verdict plus a thing to actually go fix.
 
 ---
 
@@ -31,9 +31,10 @@ Three stages, orchestrated in [backend/pipeline.py](backend/pipeline.py). Each s
                                  │ score 0–10 + reasoning, per rubric
                                  ▼
                 ┌─────────────────────────────────────────────┐
-                │  Stage 3: Gap Analysis  (TODO — null)       │
-                │  → missing gaps + next best improvement     │
+   artifact ──► │  Stage 3: Gap Analysis                      │
+                │  (Gemini-2.5-pro primary, Groq fallback)    │
                 └────────────────┬────────────────────────────┘
+                                 │ gaps + next best step + rationale
                                  ▼
                           EvaluationResult
 ```
@@ -53,10 +54,13 @@ Three stages, orchestrated in [backend/pipeline.py](backend/pipeline.py). Each s
 - **Provider**: Gemini-2.5-pro primary (better at calibrated reasoning), Groq fallback.
 - **Never raises**: per-run failures are skipped silently. If *all* runs for a rubric fail, that rubric returns `avg_score=null` with an `error` field — the rest of the report is still useful.
 
-### Stage 3 — Gap Analysis *(not yet built)*
-- **Planned input**: artifact + the Stage 2 scores and reasonings.
-- **Planned output**: `gap_analysis { gaps: [...], next_best_step: str, rationale: str }`.
-- **Right now**: `gap_analysis: null` in the response.
+### Stage 3 — Gap Analysis
+- **Input**: artifact + the per-rubric scores and reasonings from Stage 2.
+- **Does**: one LLM call. Identifies 1–4 *gaps* (specific missing elements grounded to a rubric ID), and a single *next best improvement step* with a short rationale.
+- **Output**: `GapAnalysisResponse { gaps: [{rubric_id, gap_description}], next_best_step: str, rationale: str }`.
+- **Provider**: Gemini-2.5-pro primary (reuses the Stage 2 router), Groq fallback.
+- **Never raises**: if both providers fail, returns `gap_analysis: null` and the rest of the report still ships. The frontend shows a small "gap analysis was unavailable" notice in that case.
+- **Grounding**: gap entries that reference rubric IDs that weren't actually scored are dropped post-hoc, so the model can't hallucinate dimensions.
 
 ### Final response shape
 ```jsonc
@@ -79,9 +83,18 @@ Three stages, orchestrated in [backend/pipeline.py](backend/pipeline.py). Each s
     }
     // ...one per selected rubric
   ],
-  "gap_analysis": null
+  "gap_analysis": {
+    "gaps": [
+      {"rubric_id": "evidence", "gap_description": "No data or citations support the central claim."},
+      {"rubric_id": "structure", "gap_description": "Conclusion does not tie back to the opening question."}
+    ],
+    "next_best_step": "Add one concrete piece of evidence (number, source, or example) to the second paragraph.",
+    "rationale": "Evidence is the lowest-scoring rubric and the change is small enough to make in one editing pass."
+  }
 }
 ```
+
+`gap_analysis` is `null` only when both providers failed for Stage 3 — the rest of the report still ships.
 
 ---
 
@@ -100,7 +113,7 @@ Both stages use the same router class with different primaries: Groq-first for s
 2. **Both providers down or rate-limited** → 503 `all_providers_unavailable`.
 3. **Stage 1 selection fails on both providers** → 422 `rubric_selection_failed`.
 
-**Tradeoff worth naming**: more scoring runs → more stable averages, but linearly more API calls. With `N_SCORING_RUNS=1` and up to 6 rubrics, an evaluation is ~7 calls (1 selection + 6 scoring). Bumping runs to 3 makes it ~19 calls and starts to bite Groq's free tier.
+**Tradeoff worth naming**: more scoring runs → more stable averages, but linearly more API calls. With `N_SCORING_RUNS=1` and up to 6 rubrics, an evaluation is ~8 calls (1 selection + 6 scoring + 1 gap analysis). Bumping runs to 3 makes it ~20 calls and starts to bite Groq's free tier.
 
 ---
 
@@ -134,6 +147,7 @@ Prereqs: Python 3.11+, a [Groq](https://console.groq.com) free-tier key, a [Gemi
 | `MIN_RUBRICS` / `MAX_RUBRICS` | `3` / `6` | bounds on Stage 1 output |
 | `SELECTION_TEMPERATURE` | `0.4` | Stage 1 temp |
 | `SCORING_TEMPERATURE` | `0` | Stage 2 temp (deterministic-ish) |
+| `GAP_ANALYSIS_TEMPERATURE` | `0.3` | Stage 3 temp (a bit of room for varied phrasing) |
 | `LLM_TIMEOUT_SECONDS` | `30` | per-call timeout |
 | `LLM_MAX_TOKENS` | `512` | output cap |
 | `MIN_WORDS` / `MAX_CHARS` | `10` / `15000` | input validation bounds |
@@ -165,12 +179,12 @@ Exit code 0 = all targets met. Exit 1 = something missed.
 - **No caching.** Same text evaluated twice makes the same API calls twice. Fine — the whole point is fresh evaluation.
 - **Free-tier rate limits.** Groq caps ~30 req/min. If you hit it, Gemini takes over. If both are down, 503.
 - **Scoring is subjective.** The model's sense of "7/10 for evidence" can drift. Run-averaging helps but doesn't fully fix it.
-- **Stage 3 is a placeholder.** Gap analysis isn't built yet — it's the next task.
+- **Stage 3 is best-effort.** If both providers fail on the gap-analysis call, the field comes back `null` and the UI shows a small "unavailable" notice. The scores above it are unaffected.
 
 ---
 
 ## what's next
 
-- **Stage 3**: gap analysis — what's missing, and the single best next improvement step.
-- Better prompt calibration (current prompts are v1, not tuned).
+- Better prompt calibration across all three stages (current prompts are v1, not tuned).
 - Surface the per-run reasonings in the UI (collapsed by default).
+- Maybe golden-set entries with expected gap categories, so Stage 3 is regression-tested too.

@@ -40,11 +40,23 @@ class RubricScoreResult(BaseModel):
     error: str | None = None
 
 
+class GapItem(BaseModel):
+    rubric_id: str
+    gap_description: str
+
+
+class GapAnalysisResponse(BaseModel):
+    """Stage 3 output — what's missing, plus the single next best improvement."""
+    gaps: list[GapItem]
+    next_best_step: str
+    rationale: str
+
+
 class EvaluationResult(BaseModel):
     """Final response payload returned to the client."""
     selection: RubricSelection
     scores: list[RubricScoreResult]
-    gap_analysis: None = None  # Stage 3 placeholder
+    gap_analysis: GapAnalysisResponse | None = None
 
 
 @lru_cache
