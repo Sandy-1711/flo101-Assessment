@@ -131,7 +131,7 @@ def evaluate_entry(api_url: str, entry: dict[str, Any]) -> dict[str, Any]:
     print(f"  Must-include     : {must_include}  => recall {recall:.2f}")
     if violations:
         print(f"  Must-exclude VIOLATED: {violations}")
-    print(f"  Scores:")
+    print("  Scores:")
     for line in score_details:
         print(line)
     if score_acc is not None:
@@ -221,7 +221,7 @@ def main() -> None:
     if mean_score_acc is not None:
         print(f"  Score accuracy (in-range)    : {mean_score_acc:.2f}  [target >= {SCORE_ACCURACY_TARGET}]")
     else:
-        print(f"  Score accuracy               : N/A (no rubrics checked)")
+        print("  Score accuracy               : N/A (no rubrics checked)")
 
     # Pass/fail
     recall_ok = mean_recall >= RECALL_TARGET
