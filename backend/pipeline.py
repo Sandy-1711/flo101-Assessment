@@ -17,8 +17,8 @@ from llm import get_llm_router
 from schemas import EvaluationResult, load_rubrics
 
 # Selection: Groq primary (cheap, structured), Gemini fallback.
-# Scoring + Gap analysis: Gemini 2.5-pro primary (better reasoning), Groq fallback.
-SCORING_GEMINI_MODEL = os.getenv("SCORING_GEMINI_MODEL", "gemini-2.5-pro")
+# Scoring + Gap analysis: Gemini 2.5-flash primary (good reasoning, generous free tier), Groq fallback.
+SCORING_GEMINI_MODEL = os.getenv("SCORING_GEMINI_MODEL", "gemini-2.5-flash")
 
 
 async def evaluate_artifact(artifact: str) -> EvaluationResult:

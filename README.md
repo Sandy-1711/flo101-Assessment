@@ -26,13 +26,13 @@ Three stages, orchestrated in [backend/pipeline.py](backend/pipeline.py). Each s
                                  ▼
                 ┌─────────────────────────────────────────────┐
    artifact ──► │  Stage 2: Per-Rubric Scoring (parallel)     │
-                │  (Gemini-2.5-pro primary, Groq fallback)    │
+                │  (Gemini-2.5-flash primary, Groq fallback)    │
                 └────────────────┬────────────────────────────┘
                                  │ score 0–10 + reasoning, per rubric
                                  ▼
                 ┌─────────────────────────────────────────────┐
    artifact ──► │  Stage 3: Gap Analysis                      │
-                │  (Gemini-2.5-pro primary, Groq fallback)    │
+                │  (Gemini-2.5-flash primary, Groq fallback)    │
                 └────────────────┬────────────────────────────┘
                                  │ gaps + next best step + rationale
                                  ▼
@@ -51,14 +51,14 @@ Three stages, orchestrated in [backend/pipeline.py](backend/pipeline.py). Each s
 - **Input**: `artifact` + the rubrics chosen in Stage 1.
 - **Does**: fans out across rubrics in parallel via `asyncio.gather`. For each rubric, runs N scoring calls (default `N_SCORING_RUNS=1`, configurable) and averages.
 - **Output, per rubric**: `RubricScoreResult { rubric_id, rubric_name, avg_score, individual_scores, score_variance, reasonings, runs_completed, runs_attempted, error? }`.
-- **Provider**: Gemini-2.5-pro primary (better at calibrated reasoning), Groq fallback.
+- **Provider**: Gemini-2.5-flash primary (good reasoning, much higher free-tier rate limit than 2.5-pro), Groq fallback.
 - **Never raises**: per-run failures are skipped silently. If *all* runs for a rubric fail, that rubric returns `avg_score=null` with an `error` field — the rest of the report is still useful.
 
 ### Stage 3 — Gap Analysis
 - **Input**: artifact + the per-rubric scores and reasonings from Stage 2.
 - **Does**: one LLM call. Identifies 1–4 *gaps* (specific missing elements grounded to a rubric ID), and a single *next best improvement step* with a short rationale.
 - **Output**: `GapAnalysisResponse { gaps: [{rubric_id, gap_description}], next_best_step: str, rationale: str }`.
-- **Provider**: Gemini-2.5-pro primary (reuses the Stage 2 router), Groq fallback.
+- **Provider**: Gemini-2.5-flash primary (reuses the Stage 2 router), Groq fallback.
 - **Never raises**: if both providers fail, returns `gap_analysis: null` and the rest of the report still ships. The frontend shows a small "gap analysis was unavailable" notice in that case.
 - **Grounding**: gap entries that reference rubric IDs that weren't actually scored are dropped post-hoc, so the model can't hallucinate dimensions.
 
@@ -142,7 +142,7 @@ Prereqs: Python 3.11+, a [Groq](https://console.groq.com) free-tier key, a [Gemi
 | `GEMINI_API_KEY` | — | required |
 | `GROQ_MODEL` | `llama-3.3-70b-versatile` | default Groq model |
 | `GEMINI_MODEL` | `gemini-2.0-flash-lite` | default Gemini model (used as Stage 1 fallback) |
-| `SCORING_GEMINI_MODEL` | `gemini-2.5-pro` | Gemini model used as Stage 2 primary |
+| `SCORING_GEMINI_MODEL` | `gemini-2.5-flash` | Gemini model used as Stage 2 + 3 primary |
 | `N_SCORING_RUNS` | `1` | how many times each rubric is scored, then averaged |
 | `MIN_RUBRICS` / `MAX_RUBRICS` | `3` / `6` | bounds on Stage 1 output |
 | `SELECTION_TEMPERATURE` | `0.4` | Stage 1 temp |
